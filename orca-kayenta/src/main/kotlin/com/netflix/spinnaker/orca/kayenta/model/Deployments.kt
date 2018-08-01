@@ -16,6 +16,7 @@
 
 package com.netflix.spinnaker.orca.kayenta.model
 
+import com.netflix.frigga.autoscaling.AutoScalingGroupNameBuilder
 import com.netflix.spinnaker.moniker.Moniker
 import com.netflix.spinnaker.orca.ext.mapTo
 import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryClustersStage
@@ -28,22 +29,27 @@ import java.time.Duration
  */
 internal data class Deployments(
   val baseline: Baseline,
-  val control: ClusterSpec,
-  val experiment: ClusterSpec,
+  val clusterPairs: List<ClusterPair>,
   val delayBeforeCleanup: Duration = Duration.ofHours(1)
 )
 
 /**
- * Gets the set of regions from the canary cluster specs. Can be specified
+ * Gets the set of regions from the canary cluster pairs. Can be specified
  * just as `region` or as `availabilityZones` which is a map of region to
  * zones.
  */
 internal val Deployments.regions: Set<String>
-  get() = if (experiment.availabilityZones.isNotEmpty()) {
-    experiment.availabilityZones.keys + control.availabilityZones.keys
-  } else {
-    setOf(experiment.region, control.region).filterNotNull().toSet()
-  }
+  get() = clusterPairs.flatMap {
+    it.control.regions + it.experiment.regions
+  }.toSet()
+
+/**
+ * A control / experiment pair to be deployed.
+ */
+internal data class ClusterPair(
+  val control: ClusterSpec,
+  val experiment: ClusterSpec
+)
 
 /**
  * The source cluster for the canary control.
@@ -56,21 +62,65 @@ internal data class Baseline(
 )
 
 /**
- * The deployment context for a single cluster.
+ * A typed subset of the full cluster context.
  */
 internal data class ClusterSpec(
   val cloudProvider: String,
   val account: String,
-  val moniker: Moniker,
   val availabilityZones: Map<String, Set<String>>,
-  val region: String?
+  val region: String?,
+  val moniker: Moniker?,
+  // TODO(dpeach): most providers don't support Moniker for deploy operations.
+  // Remove app-stack-detail when they do.
+  val application: String?,
+  val stack: String?,
+  val freeFormDetails: String?
 )
+
+/**
+ * Gets cluster name from either the cluster spec's moniker
+ * or app-stack-detail combination.
+ */
+internal val ClusterSpec.cluster: String
+  get() = when {
+    moniker != null -> moniker.cluster
+    application != null -> {
+      val builder = AutoScalingGroupNameBuilder()
+      builder.appName = application
+      builder.stack = stack
+      builder.detail = freeFormDetails
+      builder.buildGroupName()
+    }
+    else -> throw IllegalArgumentException("Could not resolve cluster name: ($this).")
+  }
+
+internal val ClusterSpec.regions: Set<String>
+  get() = when {
+    availabilityZones.isNotEmpty() -> availabilityZones.keys
+    region != null -> setOf(region)
+    else -> throw IllegalArgumentException("Could not resolve regions: ($this).")
+  }
 
 /**
  * Gets [Deployments] from the parent canary stage of this stage.
  */
 internal val Stage.deployments: Deployments
   get() = canaryStage.mapTo("/deployments")
+
+/**
+ * Gets the control clusters' untyped contexts.
+ */
+internal val Stage.controlClusters: List<Any?>
+  get() = clusterPairContexts.map { it["control"] }
+
+/**
+ * Gets the experiment clusters' untyped contexts.
+ */
+internal val Stage.experimentClusters: List<Any?>
+  get() = clusterPairContexts.map { it["experiment"] }
+
+private val Stage.clusterPairContexts: List<Map<String, Any?>>
+  get() = canaryStage.mapTo("/deployments/clusterPairs")
 
 /**
  * Gets the parent canary stage of this stage. Throws an exception if it's

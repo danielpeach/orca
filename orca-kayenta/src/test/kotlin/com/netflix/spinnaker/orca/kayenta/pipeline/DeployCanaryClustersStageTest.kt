@@ -42,94 +42,50 @@ internal object DeployCanaryClustersStageTest : Spek({
         "account" to "prod",
         "cluster" to "spindemo-prestaging-prestaging"
       )
-      val controlCluster = mapOf(
-        "account" to "prod",
-        "application" to "spindemo",
-        "availabilityZones" to mapOf(
-          "us-west-1" to listOf("us-west-1a", "us-west-1c")
-        ),
-        "capacity" to mapOf("desired" to 1, "max" to 1, "min" to 1),
-        "cloudProvider" to "aws",
-        "cooldown" to 10,
-        "copySourceCustomBlockDeviceMappings" to true,
-        "ebsOptimized" to false,
-        "enabledMetrics" to listOf<Any>(),
-        "freeFormDetails" to "prestaging-baseline",
-        "healthCheckGracePeriod" to 600,
-        "healthCheckType" to "EC2",
-        "iamRole" to "spindemoInstanceProfile",
-        "instanceMonitoring" to true,
-        "instanceType" to "m3.large",
-        "interestingHealthProviderNames" to listOf("Amazon"),
-        "keyPair" to "nf-prod-keypair-a",
-        "loadBalancers" to listOf<Any>(),
-        "moniker" to mapOf(
-          "app" to "spindemo",
-          "cluster" to "spindemo-prestaging-prestaging-baseline",
-          "detail" to "prestaging-baseline",
-          "stack" to "prestaging"
-        ),
-        "provider" to "aws",
-        "securityGroups" to listOf("sg-b575ded0", "sg-b775ded2", "sg-dbe43abf"),
-        "spotPrice" to "",
-        "stack" to "prestaging",
-        "subnetType" to "internal (vpc0)",
-        "suspendedProcesses" to listOf<Any>(),
-        "tags" to mapOf<String, Any>(),
-        "targetGroups" to listOf<Any>(),
-        "targetHealthyDeployPercentage" to 100,
-        "terminationPolicies" to listOf("Default"),
-        "useAmiBlockDeviceMappings" to false,
-        "useSourceCapacity" to false
-      )
-      val experimentCluster = mapOf(
-        "account" to "prod",
-        "application" to "spindemo",
-        "availabilityZones" to mapOf(
-          "us-west-1" to listOf("us-west-1a", "us-west-1c")
-        ),
-        "capacity" to mapOf("desired" to 1, "max" to 1, "min" to 1),
-        "cloudProvider" to "aws",
-        "cooldown" to 10,
-        "copySourceCustomBlockDeviceMappings" to true,
-        "ebsOptimized" to false,
-        "enabledMetrics" to listOf<Any>(),
-        "freeFormDetails" to "prestaging-canary",
-        "healthCheckGracePeriod" to 600,
-        "healthCheckType" to "EC2",
-        "iamRole" to "spindemoInstanceProfile",
-        "instanceMonitoring" to true,
-        "instanceType" to "m3.large",
-        "interestingHealthProviderNames" to listOf("Amazon"),
-        "keyPair" to "nf-prod-keypair-a",
-        "loadBalancers" to listOf<Any>(),
-        "moniker" to mapOf(
-          "app" to "spindemo",
-          "cluster" to "spindemo-prestaging-prestaging-canary",
-          "detail" to "prestaging-canary",
-          "stack" to "prestaging"
-        ),
-        "provider" to "aws",
-        "securityGroups" to listOf("sg-b575ded0", "sg-b775ded2", "sg-dbe43abf"),
-        "spotPrice" to "",
-        "stack" to "prestaging",
-        "subnetType" to "internal (vpc0)",
-        "suspendedProcesses" to listOf<Any>(),
-        "tags" to mapOf<String, Any>(),
-        "targetGroups" to listOf<Any>(),
-        "targetHealthyDeployPercentage" to 100,
-        "terminationPolicies" to listOf("Default"),
-        "useAmiBlockDeviceMappings" to false,
-        "useSourceCapacity" to false
-      )
+      val controlClusterA = cluster {
+        mapOf(
+          "application" to "spindemo",
+          "stack" to "prestaging",
+          "freeFormDetails" to "baseline-a"
+        )
+      }
+      val controlClusterB = cluster {
+        mapOf(
+          "application" to "spindemo",
+          "stack" to "prestaging",
+          "freeFormDetails" to "baseline-b"
+        )
+      }
+      val experimentClusterA = cluster {
+        mapOf(
+          "application" to "spindemo",
+          "stack" to "prestaging",
+          "freeFormDetails" to "canary-a"
+        )
+      }
+      val experimentClusterB = cluster {
+        mapOf(
+          "application" to "spindemo",
+          "stack" to "prestaging",
+          "freeFormDetails" to "canary-b"
+        )
+      }
       val pipeline = pipeline {
         stage {
           refId = "1"
           type = KayentaCanaryStage.STAGE_TYPE
           context["deployments"] = mapOf(
             "baseline" to baseline,
-            "control" to controlCluster,
-            "experiment" to experimentCluster
+            "clusterPairs" to listOf(
+              mapOf(
+                "control" to controlClusterA,
+                "experiment" to experimentClusterA
+              ),
+              mapOf(
+                "control" to controlClusterB,
+                "experiment" to experimentClusterB
+              )
+            )
           )
           stage {
             refId = "1<1"
@@ -151,20 +107,20 @@ internal object DeployCanaryClustersStageTest : Spek({
           assertThat(context["cloudProvider"]).isEqualTo("aws")
           assertThat(context["regions"]).isEqualTo(setOf("us-west-1"))
         }
-        beforeStages.named("Deploy control cluster") {
+        beforeStages.named("Deploy control clusters") {
           assertThat(type).isEqualTo(ParallelDeployStage.PIPELINE_CONFIG_TYPE)
           assertThat(requisiteStageRefIds).hasSize(1)
           assertThat(pipeline.stageByRef(requisiteStageRefIds.first()).name)
             .isEqualTo("Find baseline image")
-          assertThat(context).containsAllEntriesOf(controlCluster)
+          assertThat(context["clusters"]).isEqualTo(listOf(controlClusterA, controlClusterB))
         }
       }
 
       it("creates a deploy stage for the experiment cluster") {
-        beforeStages.named("Deploy experiment cluster") {
+        beforeStages.named("Deploy experiment clusters") {
           assertThat(type).isEqualTo(ParallelDeployStage.PIPELINE_CONFIG_TYPE)
           assertThat(requisiteStageRefIds).isEmpty()
-          assertThat(context).containsAllEntriesOf(experimentCluster)
+          assertThat(context["clusters"]).isEqualTo(listOf(experimentClusterA, experimentClusterB))
         }
       }
     }

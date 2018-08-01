@@ -19,9 +19,7 @@ package com.netflix.spinnaker.orca.kayenta.pipeline
 import com.netflix.spinnaker.orca.clouddriver.pipeline.cluster.FindImageFromClusterStage
 import com.netflix.spinnaker.orca.ext.mapTo
 import com.netflix.spinnaker.orca.kato.pipeline.ParallelDeployStage
-import com.netflix.spinnaker.orca.kayenta.model.canaryStage
-import com.netflix.spinnaker.orca.kayenta.model.deployments
-import com.netflix.spinnaker.orca.kayenta.model.regions
+import com.netflix.spinnaker.orca.kayenta.model.*
 import com.netflix.spinnaker.orca.pipeline.StageDefinitionBuilder
 import com.netflix.spinnaker.orca.pipeline.graph.StageGraphBuilder
 import com.netflix.spinnaker.orca.pipeline.model.Stage
@@ -49,23 +47,22 @@ class DeployCanaryClustersStage : StageDefinitionBuilder {
           "cloudProvider" to (deployments.baseline.cloudProvider ?: "aws")
         )
       }
-      parent.canaryStage.also { canaryStage ->
-        // deployment for the control cluster follows the find image
-        graph.append {
-          it.type = ParallelDeployStage.PIPELINE_CONFIG_TYPE
-          it.name = "Deploy control cluster"
-          it.context.putAll(canaryStage.mapTo("/deployments/control"))
-          it.context["strategy"] = "highlander"
-        }
 
-        // deployment for the experiment cluster is branched separately, there
-        // should be an upstream bake / find image that supplies the artifact
-        graph.add {
-          it.type = ParallelDeployStage.PIPELINE_CONFIG_TYPE
-          it.name = "Deploy experiment cluster"
-          it.context.putAll(canaryStage.mapTo("/deployments/experiment"))
-          it.context["strategy"] = "highlander"
-        }
+      // deployment for the control clusters follows the find image
+      graph.append {
+        it.type = ParallelDeployStage.PIPELINE_CONFIG_TYPE
+        it.name = "Deploy control clusters"
+        it.context["clusters"] = parent.controlClusters
+        it.context["strategy"] = "highlander"
+      }
+
+      // deployment for the experiment clusters is branched separately, there
+      // should be an upstream bake / find image that supplies the artifact
+      graph.add {
+        it.type = ParallelDeployStage.PIPELINE_CONFIG_TYPE
+        it.name = "Deploy experiment clusters"
+        it.context["clusters"] = parent.experimentClusters
+        it.context["strategy"] = "highlander"
       }
     }
   }
