@@ -18,9 +18,12 @@ package com.netflix.spinnaker.orca.kayenta.pipeline
 
 import com.netflix.spinnaker.orca.clouddriver.pipeline.cluster.FindImageFromClusterStage
 import com.netflix.spinnaker.orca.ext.mapTo
+import com.netflix.spinnaker.orca.ext.withTask
 import com.netflix.spinnaker.orca.kato.pipeline.ParallelDeployStage
 import com.netflix.spinnaker.orca.kayenta.model.*
+import com.netflix.spinnaker.orca.kayenta.tasks.PropagateDeployedClusterScopes
 import com.netflix.spinnaker.orca.pipeline.StageDefinitionBuilder
+import com.netflix.spinnaker.orca.pipeline.TaskNode
 import com.netflix.spinnaker.orca.pipeline.graph.StageGraphBuilder
 import com.netflix.spinnaker.orca.pipeline.model.Stage
 import org.springframework.stereotype.Component
@@ -31,6 +34,8 @@ class DeployCanaryClustersStage : StageDefinitionBuilder {
   companion object {
     @JvmStatic
     val STAGE_TYPE = "deployCanaryClusters"
+    const val DEPLOY_CONTROL_CLUSTERS = "Deploy control clusters"
+    const val DEPLOY_EXPERIMENT_CLUSTERS = "Deploy experiment clusters"
   }
 
   override fun beforeStages(parent: Stage, graph: StageGraphBuilder) {
@@ -51,7 +56,7 @@ class DeployCanaryClustersStage : StageDefinitionBuilder {
       // deployment for the control clusters follows the find image
       graph.append {
         it.type = ParallelDeployStage.PIPELINE_CONFIG_TYPE
-        it.name = "Deploy control clusters"
+        it.name = DEPLOY_CONTROL_CLUSTERS
         it.context["clusters"] = parent.controlClusters
         it.context["strategy"] = "highlander"
       }
@@ -60,10 +65,14 @@ class DeployCanaryClustersStage : StageDefinitionBuilder {
       // should be an upstream bake / find image that supplies the artifact
       graph.add {
         it.type = ParallelDeployStage.PIPELINE_CONFIG_TYPE
-        it.name = "Deploy experiment clusters"
+        it.name = DEPLOY_EXPERIMENT_CLUSTERS
         it.context["clusters"] = parent.experimentClusters
         it.context["strategy"] = "highlander"
       }
     }
+  }
+
+  override fun taskGraph(stage: Stage, builder: TaskNode.Builder) {
+    builder.withTask<PropagateDeployedClusterScopes>("propagateDeployedClusterScopes")
   }
 }
