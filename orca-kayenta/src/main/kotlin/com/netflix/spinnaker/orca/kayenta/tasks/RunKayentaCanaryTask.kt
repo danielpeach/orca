@@ -40,11 +40,11 @@ class RunKayentaCanaryTask(
 
   override fun execute(stage: Stage): TaskResult {
     val context = stage.mapTo<RunCanaryContext>()
-    // The `DeployCanaryClusters` stage will deploy a list of experiment/control
-    // pairs, but we will only canary the first pair in `deployedClusters`.
-    val scopes = stage.context["deployedClusters"]?.let {
-      val clusters = OrcaObjectMapper.newInstance().convertValue<List<DeployedCluster>>(it)
-      context.scopes.from(clusters.first())
+    // The `DeployCanaryServerGroups` stage will deploy a list of experiment/control
+    // pairs, but we will only canary the first pair in `deployedServerGroups`.
+    val scopes = stage.context["deployedServerGroups"]?.let {
+      val pairs = OrcaObjectMapper.newInstance().convertValue<List<DeployedServerGroupPair>>(it)
+      context.scopes.from(pairs.first())
     } ?: context.scopes
 
     val canaryPipelineExecutionId = kayentaService.create(
@@ -61,22 +61,22 @@ class RunKayentaCanaryTask(
   }
 }
 
-private fun Map<String, CanaryScopes>.from(cluster: DeployedCluster): Map<String, CanaryScopes> {
+private fun Map<String, CanaryScopes>.from(pair: DeployedServerGroupPair): Map<String, CanaryScopes> {
   return entries.associate { (key, scope) ->
     key to scope.copy(
       controlScope = scope.controlScope.copy(
-        scope = cluster.controlScope,
-        location = cluster.controlLocation
+        scope = pair.controlScope,
+        location = pair.controlLocation
       ),
       experimentScope = scope.experimentScope.copy(
-        scope = cluster.experimentScope,
-        location = cluster.experimentLocation
+        scope = pair.experimentScope,
+        location = pair.experimentLocation
       )
     )
   }
 }
 
-internal data class DeployedCluster(
+internal data class DeployedServerGroupPair(
   val controlLocation: String,
   val controlScope: String,
   val experimentLocation: String,

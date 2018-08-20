@@ -22,19 +22,19 @@ import com.netflix.spinnaker.orca.ExecutionStatus
 import com.netflix.spinnaker.orca.Task
 import com.netflix.spinnaker.orca.TaskResult
 import com.netflix.spinnaker.orca.ext.mapTo
-import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryClustersStage.Companion.DEPLOY_CONTROL_CLUSTERS
-import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryClustersStage.Companion.DEPLOY_EXPERIMENT_CLUSTERS
+import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryServerGroupsStage.Companion.DEPLOY_CONTROL_SERVER_GROUPS
+import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryServerGroupsStage.Companion.DEPLOY_EXPERIMENT_SERVER_GROUPS
 import com.netflix.spinnaker.orca.pipeline.model.Stage
 import org.springframework.stereotype.Component
 
 @Component
-class PropagateDeployedClusterScopes : Task {
+class PropagateDeployedServerGroupScopes : Task {
 
   override fun execute(stage: Stage): TaskResult {
-    val clusters =
-      stage.childrenOf(DEPLOY_CONTROL_CLUSTERS) zip stage.childrenOf(DEPLOY_EXPERIMENT_CLUSTERS)
+    val serverGroupPairs =
+      stage.childrenOf(DEPLOY_CONTROL_SERVER_GROUPS) zip stage.childrenOf(DEPLOY_EXPERIMENT_SERVER_GROUPS)
 
-    val scopes = clusters.map { (control, experiment) ->
+    val scopes = serverGroupPairs.map { (control, experiment) ->
       val scope = mutableMapOf<String, Any>()
       control.mapTo<DeployServerGroupContext>().deployServerGroups.entries.first().let { (location, serverGroups) ->
         scope["controlLocation"] = location
@@ -48,7 +48,7 @@ class PropagateDeployedClusterScopes : Task {
     }
 
     return TaskResult(ExecutionStatus.SUCCEEDED, emptyMap<String, Any>(), mapOf(
-      "deployedClusters" to scopes
+      "deployedServerGroups" to scopes
     ))
   }
 }

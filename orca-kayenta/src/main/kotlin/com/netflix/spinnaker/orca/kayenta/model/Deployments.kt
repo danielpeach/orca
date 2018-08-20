@@ -19,36 +19,36 @@ package com.netflix.spinnaker.orca.kayenta.model
 import com.netflix.frigga.autoscaling.AutoScalingGroupNameBuilder
 import com.netflix.spinnaker.moniker.Moniker
 import com.netflix.spinnaker.orca.ext.mapTo
-import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryClustersStage
+import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryServerGroupsStage
 import com.netflix.spinnaker.orca.kayenta.pipeline.KayentaCanaryStage
 import com.netflix.spinnaker.orca.pipeline.model.Stage
 import java.time.Duration
 
 /**
- * Defines the deployment context for canary control and experiment clusters.
+ * Defines the deployment context for canary control and experiment server groups.
  */
 internal data class Deployments(
   val baseline: Baseline,
-  val clusterPairs: List<ClusterPair>,
+  val serverGroupPairs: List<ServerGroupPair>,
   val delayBeforeCleanup: Duration = Duration.ofHours(1)
 )
 
 /**
- * Gets the set of regions from the canary cluster pairs. Can be specified
+ * Gets the set of regions from the canary server group pairs. Can be specified
  * just as `region` or as `availabilityZones` which is a map of region to
  * zones.
  */
 internal val Deployments.regions: Set<String>
-  get() = clusterPairs.flatMap {
+  get() = serverGroupPairs.flatMap {
     it.control.regions + it.experiment.regions
   }.toSet()
 
 /**
  * A control / experiment pair to be deployed.
  */
-internal data class ClusterPair(
-  val control: ClusterSpec,
-  val experiment: ClusterSpec
+internal data class ServerGroupPair(
+  val control: ServerGroupSpec,
+  val experiment: ServerGroupSpec
 )
 
 /**
@@ -62,9 +62,9 @@ internal data class Baseline(
 )
 
 /**
- * A typed subset of the full cluster context.
+ * A typed subset of a full server group context.
  */
-internal data class ClusterSpec(
+internal data class ServerGroupSpec(
   val cloudProvider: String,
   val account: String,
   val availabilityZones: Map<String, Set<String>>,
@@ -78,10 +78,10 @@ internal data class ClusterSpec(
 )
 
 /**
- * Gets cluster name from either the cluster spec's moniker
+ * Gets cluster name from either the spec's moniker
  * or app-stack-detail combination.
  */
-internal val ClusterSpec.cluster: String
+internal val ServerGroupSpec.cluster: String
   get() = when {
     moniker != null -> moniker.cluster
     application != null -> {
@@ -91,10 +91,10 @@ internal val ClusterSpec.cluster: String
       builder.detail = freeFormDetails
       builder.buildGroupName()
     }
-    else -> throw IllegalArgumentException("Could not resolve cluster name: ($this).")
+    else -> throw IllegalArgumentException("Could not resolve server group name: ($this).")
   }
 
-internal val ClusterSpec.regions: Set<String>
+internal val ServerGroupSpec.regions: Set<String>
   get() = when {
     availabilityZones.isNotEmpty() -> availabilityZones.keys
     region != null -> setOf(region)
@@ -108,19 +108,19 @@ internal val Stage.deployments: Deployments
   get() = canaryStage.mapTo("/deployments")
 
 /**
- * Gets the control clusters' untyped contexts.
+ * Gets the control server groups' untyped contexts.
  */
-internal val Stage.controlClusters: List<Any?>
-  get() = clusterPairContexts.map { it["control"] }
+internal val Stage.controlServerGroups: List<Any?>
+  get() = serverGroupPairContexts.map { it["control"] }
 
 /**
- * Gets the experiment clusters' untyped contexts.
+ * Gets the experiment server groups' untyped contexts.
  */
-internal val Stage.experimentClusters: List<Any?>
-  get() = clusterPairContexts.map { it["experiment"] }
+internal val Stage.experimentServerGroups: List<Any?>
+  get() = serverGroupPairContexts.map { it["experiment"] }
 
-private val Stage.clusterPairContexts: List<Map<String, Any?>>
-  get() = canaryStage.mapTo("/deployments/clusterPairs")
+private val Stage.serverGroupPairContexts: List<Map<String, Any?>>
+  get() = canaryStage.mapTo("/deployments/serverGroupPairs")
 
 /**
  * Gets the parent canary stage of this stage. Throws an exception if it's
@@ -129,7 +129,7 @@ private val Stage.clusterPairContexts: List<Map<String, Any?>>
 internal val Stage.canaryStage: Stage
   get() = parent?.apply {
     if (type != KayentaCanaryStage.STAGE_TYPE) {
-      throw IllegalStateException("${DeployCanaryClustersStage.STAGE_TYPE} should be the child of a ${KayentaCanaryStage.STAGE_TYPE} stage")
+      throw IllegalStateException("${DeployCanaryServerGroupsStage.STAGE_TYPE} should be the child of a ${KayentaCanaryStage.STAGE_TYPE} stage")
     }
   }
-    ?: throw IllegalStateException("${DeployCanaryClustersStage.STAGE_TYPE} should be the child of a ${KayentaCanaryStage.STAGE_TYPE} stage")
+    ?: throw IllegalStateException("${DeployCanaryServerGroupsStage.STAGE_TYPE} should be the child of a ${KayentaCanaryStage.STAGE_TYPE} stage")

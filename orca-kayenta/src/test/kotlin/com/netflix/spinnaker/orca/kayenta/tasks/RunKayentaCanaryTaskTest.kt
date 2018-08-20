@@ -19,7 +19,7 @@ package com.netflix.spinnaker.orca.kayenta.tasks
 import com.netflix.spinnaker.orca.fixture.pipeline
 import com.netflix.spinnaker.orca.fixture.stage
 import com.netflix.spinnaker.orca.kayenta.KayentaService
-import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryClustersStage
+import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryServerGroupsStage
 import com.netflix.spinnaker.orca.kayenta.pipeline.RunCanaryPipelineStage
 import com.nhaarman.mockito_kotlin.*
 import org.assertj.core.api.Assertions.assertThat
@@ -41,9 +41,9 @@ object RunKayentaCanaryTaskTest : Spek({
     val pipeline = pipeline {
       stage {
         refId = "1"
-        type = DeployCanaryClustersStage.STAGE_TYPE
-        name = "deployCanaryClusters"
-        outputs["deployedClusters"] = listOf(
+        type = DeployCanaryServerGroupsStage.STAGE_TYPE
+        name = "deployCanaryServerGroups"
+        outputs["deployedServerGroups"] = listOf(
           mapOf(
             "controlScope" to "app-control-v000",
             "controlLocation" to "us-central1",

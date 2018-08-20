@@ -30,11 +30,11 @@ import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.given
 import org.jetbrains.spek.api.dsl.it
 
-internal object DeployCanaryClustersStageTest : Spek({
+internal object DeployCanaryServerGroupsStageTest : Spek({
 
   describe("constructing synthetic stages") {
 
-    val subject = DeployCanaryClustersStage()
+    val subject = DeployCanaryServerGroupsStage()
 
     given("a canary deployment pipeline") {
       val baseline = mapOf(
@@ -42,28 +42,28 @@ internal object DeployCanaryClustersStageTest : Spek({
         "account" to "prod",
         "cluster" to "spindemo-prestaging-prestaging"
       )
-      val controlClusterA = cluster {
+      val controlServerGroupA = serverGroup {
         mapOf(
           "application" to "spindemo",
           "stack" to "prestaging",
           "freeFormDetails" to "baseline-a"
         )
       }
-      val controlClusterB = cluster {
+      val controlServerGroupB = serverGroup {
         mapOf(
           "application" to "spindemo",
           "stack" to "prestaging",
           "freeFormDetails" to "baseline-b"
         )
       }
-      val experimentClusterA = cluster {
+      val experimentServerGroupA = serverGroup {
         mapOf(
           "application" to "spindemo",
           "stack" to "prestaging",
           "freeFormDetails" to "canary-a"
         )
       }
-      val experimentClusterB = cluster {
+      val experimentServerGroupB = serverGroup {
         mapOf(
           "application" to "spindemo",
           "stack" to "prestaging",
@@ -76,20 +76,20 @@ internal object DeployCanaryClustersStageTest : Spek({
           type = KayentaCanaryStage.STAGE_TYPE
           context["deployments"] = mapOf(
             "baseline" to baseline,
-            "clusterPairs" to listOf(
+            "serverGroupPairs" to listOf(
               mapOf(
-                "control" to controlClusterA,
-                "experiment" to experimentClusterA
+                "control" to controlServerGroupA,
+                "experiment" to experimentServerGroupA
               ),
               mapOf(
-                "control" to controlClusterB,
-                "experiment" to experimentClusterB
+                "control" to controlServerGroupB,
+                "experiment" to experimentServerGroupB
               )
             )
           )
           stage {
             refId = "1<1"
-            type = DeployCanaryClustersStage.STAGE_TYPE
+            type = DeployCanaryServerGroupsStage.STAGE_TYPE
           }
         }
       }
@@ -97,30 +97,30 @@ internal object DeployCanaryClustersStageTest : Spek({
 
       val beforeStages = subject.beforeStages(canaryDeployStage)
 
-      it("creates a find image and deploy stages for the control cluster") {
+      it("creates a find image and deploy stages for the control serverGroup") {
         beforeStages.named("Find baseline image") {
           assertThat(type).isEqualTo(FindImageFromClusterStage.PIPELINE_CONFIG_TYPE)
           assertThat(requisiteStageRefIds).isEmpty()
           assertThat(context["application"]).isEqualTo(baseline["application"])
           assertThat(context["account"]).isEqualTo(baseline["account"])
-          assertThat(context["cluster"]).isEqualTo(baseline["cluster"])
+          assertThat(context["serverGroup"]).isEqualTo(baseline["serverGroup"])
           assertThat(context["cloudProvider"]).isEqualTo("aws")
           assertThat(context["regions"]).isEqualTo(setOf("us-west-1"))
         }
-        beforeStages.named("Deploy control clusters") {
+        beforeStages.named("Deploy control server groups") {
           assertThat(type).isEqualTo(ParallelDeployStage.PIPELINE_CONFIG_TYPE)
           assertThat(requisiteStageRefIds).hasSize(1)
           assertThat(pipeline.stageByRef(requisiteStageRefIds.first()).name)
             .isEqualTo("Find baseline image")
-          assertThat(context["clusters"]).isEqualTo(listOf(controlClusterA, controlClusterB))
+          assertThat(context["clusters"]).isEqualTo(listOf(controlServerGroupA, controlServerGroupB))
         }
       }
 
-      it("creates a deploy stage for the experiment cluster") {
-        beforeStages.named("Deploy experiment clusters") {
+      it("creates a deploy stage for the experiment serverGroup") {
+        beforeStages.named("Deploy experiment server groups") {
           assertThat(type).isEqualTo(ParallelDeployStage.PIPELINE_CONFIG_TYPE)
           assertThat(requisiteStageRefIds).isEmpty()
-          assertThat(context["clusters"]).isEqualTo(listOf(experimentClusterA, experimentClusterB))
+          assertThat(context["clusters"]).isEqualTo(listOf(experimentServerGroupA, experimentServerGroupB))
         }
       }
     }

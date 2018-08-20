@@ -39,28 +39,28 @@ internal object CleanupCanaryClustersStageTest : Spek({
       "account" to "prod",
       "cluster" to "spindemo-prestaging"
     )
-    val controlClusterA = cluster {
+    val controlServerGroupA = serverGroup {
       mapOf(
         "application" to "spindemo",
         "stack" to "prestaging",
         "freeFormDetails" to "baseline-a"
       )
     }
-    val controlClusterB = cluster {
+    val controlServerGroupB = serverGroup {
       mapOf(
         "application" to "spindemo",
         "stack" to "prestaging",
         "freeFormDetails" to "baseline-b"
       )
     }
-    val experimentClusterA = cluster {
+    val experimentServerGroupA = serverGroup {
       mapOf(
         "application" to "spindemo",
         "stack" to "prestaging",
         "freeFormDetails" to "canary-a"
       )
     }
-    val experimentClusterB = cluster {
+    val experimentServerGroupB = serverGroup {
       mapOf(
         "application" to "spindemo",
         "stack" to "prestaging",
@@ -74,21 +74,21 @@ internal object CleanupCanaryClustersStageTest : Spek({
         type = KayentaCanaryStage.STAGE_TYPE
         context["deployments"] = mapOf(
           "baseline" to baseline,
-          "clusterPairs" to listOf(
+          "serverGroupPairs" to listOf(
             mapOf(
-              "control" to controlClusterA,
-              "experiment" to experimentClusterA
+              "control" to controlServerGroupA,
+              "experiment" to experimentServerGroupA
             ),
             mapOf(
-              "control" to controlClusterB,
-              "experiment" to experimentClusterB
+              "control" to controlServerGroupB,
+              "experiment" to experimentServerGroupB
             )
           ),
           "delayBeforeCleanup" to delayBeforeCleanup.toString()
         )
         stage {
           refId = "1<1"
-          type = DeployCanaryClustersStage.STAGE_TYPE
+          type = DeployCanaryServerGroupsStage.STAGE_TYPE
         }
         stage {
           refId = "1>1"
@@ -107,7 +107,7 @@ internal object CleanupCanaryClustersStageTest : Spek({
         assertThat(requisiteStageRefIds).isEmpty()
 
         assertThat(context["cloudProvider"]).isEqualTo("aws")
-        assertThat(context["credentials"]).isEqualTo(controlClusterA["account"])
+        assertThat(context["credentials"]).isEqualTo(controlServerGroupA["account"])
         assertThat(context["cluster"]).isEqualTo("spindemo-prestaging-baseline-a")
         assertThat(context["regions"]).isEqualTo(setOf("us-west-1"))
 
@@ -118,7 +118,7 @@ internal object CleanupCanaryClustersStageTest : Spek({
         assertThat(requisiteStageRefIds).isEmpty()
 
         assertThat(context["cloudProvider"]).isEqualTo("aws")
-        assertThat(context["credentials"]).isEqualTo(experimentClusterA["account"])
+        assertThat(context["credentials"]).isEqualTo(experimentServerGroupA["account"])
         assertThat(context["cluster"]).isEqualTo("spindemo-prestaging-canary-a")
         assertThat(context["regions"]).isEqualTo(setOf("us-west-1"))
 
@@ -153,7 +153,7 @@ internal object CleanupCanaryClustersStageTest : Spek({
         ).containsExactly("Wait before cleanup")
 
         assertThat(context["cloudProvider"]).isEqualTo("aws")
-        assertThat(context["credentials"]).isEqualTo(controlClusterA["account"])
+        assertThat(context["credentials"]).isEqualTo(controlServerGroupA["account"])
         assertThat(context["regions"]).isEqualTo(setOf("us-west-1"))
         assertThat(context["cluster"]).isEqualTo("spindemo-prestaging-baseline-a")
         assertThat(context["allowDeleteActive"]).isEqualTo(true)
@@ -169,7 +169,7 @@ internal object CleanupCanaryClustersStageTest : Spek({
         ).containsExactly("Wait before cleanup")
 
         assertThat(context["cloudProvider"]).isEqualTo("aws")
-        assertThat(context["credentials"]).isEqualTo(experimentClusterA["account"])
+        assertThat(context["credentials"]).isEqualTo(experimentServerGroupA["account"])
         assertThat(context["cluster"]).isEqualTo("spindemo-prestaging-canary-a")
         assertThat(context["regions"]).isEqualTo(setOf("us-west-1"))
         assertThat(context["allowDeleteActive"]).isEqualTo(true)

@@ -22,9 +22,9 @@ import com.netflix.spinnaker.orca.fixture.pipeline
 import com.netflix.spinnaker.orca.fixture.stage
 import com.netflix.spinnaker.orca.jackson.OrcaObjectMapper
 import com.netflix.spinnaker.orca.kato.pipeline.ParallelDeployStage
-import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryClustersStage
-import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryClustersStage.Companion.DEPLOY_CONTROL_CLUSTERS
-import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryClustersStage.Companion.DEPLOY_EXPERIMENT_CLUSTERS
+import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryServerGroupsStage
+import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryServerGroupsStage.Companion.DEPLOY_CONTROL_SERVER_GROUPS
+import com.netflix.spinnaker.orca.kayenta.pipeline.DeployCanaryServerGroupsStage.Companion.DEPLOY_EXPERIMENT_SERVER_GROUPS
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.jetbrains.spek.api.Spek
@@ -32,20 +32,21 @@ import org.jetbrains.spek.api.dsl.given
 import org.jetbrains.spek.api.dsl.it
 
 
-object PropagateDeployedClusterScopesTest : Spek({
+object PropagateDeployedServerGroupScopesTest : Spek({
 
-  val subject = PropagateDeployedClusterScopes()
+  val subject = PropagateDeployedServerGroupScopes()
+  val objectMapper = OrcaObjectMapper.newInstance()
 
   given("upstream experiment and control deploy stages") {
     val pipeline = pipeline {
       stage {
         refId = "1"
-        type = DeployCanaryClustersStage.STAGE_TYPE
+        type = DeployCanaryServerGroupsStage.STAGE_TYPE
         name = "deployCanaryClusters"
 
         stage {
           type = ParallelDeployStage.PIPELINE_CONFIG_TYPE
-          name = DEPLOY_CONTROL_CLUSTERS
+          name = DEPLOY_CONTROL_SERVER_GROUPS
           stage {
             type = CreateServerGroupStage.PIPELINE_CONFIG_TYPE
             context["deploy.server.groups"] = mapOf(
@@ -63,7 +64,7 @@ object PropagateDeployedClusterScopesTest : Spek({
 
         stage {
           type = ParallelDeployStage.PIPELINE_CONFIG_TYPE
-          name = DEPLOY_EXPERIMENT_CLUSTERS
+          name = DEPLOY_EXPERIMENT_SERVER_GROUPS
 
           stage {
             type = CreateServerGroupStage.PIPELINE_CONFIG_TYPE
@@ -82,17 +83,17 @@ object PropagateDeployedClusterScopesTest : Spek({
       }
     }
 
-    subject.execute(pipeline.stageByRef("1")).outputs["deployedClusters"]?.let { clusters ->
+    subject.execute(pipeline.stageByRef("1")).outputs["deployedServerGroups"]?.let { pairs ->
       it("summarizes deployments, joining experiment and control pairs") {
-        OrcaObjectMapper.newInstance().convertValue<List<DeployedCluster>>(clusters).let {
+        objectMapper.convertValue<List<DeployedServerGroupPair>>(pairs).let {
           assertThat(it).containsExactlyInAnyOrder(
-            DeployedCluster(
+            DeployedServerGroupPair(
               experimentScope = "app-experiment-a-v000",
               experimentLocation = "us-central1",
               controlScope = "app-control-a-v000",
               controlLocation = "us-central1"
             ),
-            DeployedCluster(
+            DeployedServerGroupPair(
               experimentScope = "app-experiment-b-v000",
               experimentLocation = "us-central1",
               controlScope = "app-control-b-v000",
@@ -101,6 +102,6 @@ object PropagateDeployedClusterScopesTest : Spek({
           )
         }
       }
-    } ?: fail("Task should output `deployedClusters`")
+    } ?: fail("Task should output `deployedServerGroups`")
   }
 })

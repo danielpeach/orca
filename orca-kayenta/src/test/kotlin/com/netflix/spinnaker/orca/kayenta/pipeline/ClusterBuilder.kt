@@ -17,10 +17,10 @@
 package com.netflix.spinnaker.orca.kayenta.pipeline
 
 /**
- * Builds a cluster
+ * Builds a server group
  */
-fun cluster(block: () -> Map<String, Any>): Map<String, Any> {
-  val cluster = mutableMapOf(
+fun serverGroup(block: () -> Map<String, Any>): Map<String, Any> {
+  val sg = mutableMapOf(
     "account" to "prod",
     "availabilityZones" to mapOf(
       "us-west-1" to listOf("us-west-1a", "us-west-1c")
@@ -51,7 +51,7 @@ fun cluster(block: () -> Map<String, Any>): Map<String, Any> {
     "useAmiBlockDeviceMappings" to false,
     "useSourceCapacity" to false
   )
-  cluster.putAll(block())
+  sg.putAll(block())
 
-  return cluster
+  return sg
 }

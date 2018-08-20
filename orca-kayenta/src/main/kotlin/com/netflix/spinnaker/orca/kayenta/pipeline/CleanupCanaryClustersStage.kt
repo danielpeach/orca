@@ -18,7 +18,7 @@ package com.netflix.spinnaker.orca.kayenta.pipeline
 
 import com.netflix.spinnaker.orca.clouddriver.pipeline.cluster.DisableClusterStage
 import com.netflix.spinnaker.orca.clouddriver.pipeline.cluster.ShrinkClusterStage
-import com.netflix.spinnaker.orca.kayenta.model.ClusterSpec
+import com.netflix.spinnaker.orca.kayenta.model.ServerGroupSpec
 import com.netflix.spinnaker.orca.kayenta.model.cluster
 import com.netflix.spinnaker.orca.kayenta.model.deployments
 import com.netflix.spinnaker.orca.kayenta.model.regions
@@ -38,7 +38,7 @@ class CleanupCanaryClustersStage : StageDefinitionBuilder {
   override fun beforeStages(parent: Stage, graph: StageGraphBuilder) {
     val deployments = parent.deployments
 
-    val disableStages = deployments.clusterPairs.flatMap { pair ->
+    val disableStages = deployments.serverGroupPairs.flatMap { pair ->
       listOf(
         graph.add {
           it.type = DisableClusterStage.STAGE_TYPE
@@ -66,7 +66,7 @@ class CleanupCanaryClustersStage : StageDefinitionBuilder {
       graph.connect(it, waitStage)
     }
 
-    deployments.clusterPairs.forEach { pair ->
+    deployments.serverGroupPairs.forEach { pair ->
       // destroy control cluster
       graph.connect(waitStage) {
         it.type = ShrinkClusterStage.STAGE_TYPE
@@ -87,7 +87,7 @@ class CleanupCanaryClustersStage : StageDefinitionBuilder {
     }
   }
 
-  private val ClusterSpec.toContext
+  private val ServerGroupSpec.toContext
     get() = mapOf(
       "cloudProvider" to cloudProvider,
       "credentials" to account,

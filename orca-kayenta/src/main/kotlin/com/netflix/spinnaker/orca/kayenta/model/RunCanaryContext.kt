@@ -18,7 +18,6 @@ package com.netflix.spinnaker.orca.kayenta.model
 
 import com.netflix.spinnaker.orca.kayenta.CanaryScopes
 import com.netflix.spinnaker.orca.kayenta.Thresholds
-import com.netflix.spinnaker.orca.kayenta.tasks.PropagateDeployedClusterScopes
 import java.util.Collections.emptyMap
 
 internal data class RunCanaryContext(
