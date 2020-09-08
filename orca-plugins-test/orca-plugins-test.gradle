@@ -22,6 +22,8 @@ dependencies {
   testImplementation(project(":orca-web"))
   testImplementation(project(":orca-queue"))
   testImplementation(project(":orca-clouddriver"))
+  testImplementation("com.netflix.spinnaker.kork:kork-jedis")
+  testImplementation("com.netflix.spinnaker.kork:kork-jedis-test")
 
   testImplementation("com.netflix.spinnaker.keiko:keiko-mem:$keikoVersion")
   testImplementation("com.netflix.spinnaker.kork:kork-plugins-tck")
