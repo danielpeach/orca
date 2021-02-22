@@ -36,5 +36,5 @@ jobs:
           VERSION: ${{ steps.resolve_artifact_version.outputs.VERSION }}
           APPLICATION_DEFAULT_CREDENTIALS: ${{ secrets.GAR_SERVICE_ACCOUNT_KEY }}
         run: |
-          ./gradlew --info -Pversion="${RELEASE_VERSION} -PartifactRegistryPublishEnabled=true -PartifactRegistryPublishAptEnabled=false publish
+          ./gradlew --info -Pversion="${RELEASE_VERSION}" -PartifactRegistryPublishEnabled=true -PartifactRegistryPublishAptEnabled=false publish
 
