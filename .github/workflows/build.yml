@@ -41,5 +41,5 @@ jobs:
         env: 
           VERSION: ${{ steps.resolve_artifact_version.outputs.VERSION }}
         run: |
-          ./gradlew --info -Pversion="${RELEASE_VERSION}" -PartifactRegistryPublishEnabled=true -PartifactRegistryPublishAptEnabled=false publish
+          ./gradlew --info -Pversion="${VERSION}" -PartifactRegistryPublishEnabled=true -PartifactRegistryPublishAptEnabled=false publish
 
