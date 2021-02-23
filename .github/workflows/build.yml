@@ -19,18 +19,18 @@ jobs:
       - uses: actions/setup-java@v1
         with:
           java-version: 11
-     # - uses: actions/cache@v1
-     #   with:
-     #     path: ~/.gradle
-     #     key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-     #     restore-keys: |
-     #       ${{ runner.os }}-gradle-
+      - uses: actions/cache@v1
+        with:
+         path: ~/.gradle
+         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+         restore-keys: |
+          ${{ runner.os }}-gradle-
      # - name: Build
      #   run: ./gradlew build --stacktrace
       - name: Resolve Artifact Version
         id: resolve_artifact_version
         run: |
-          echo ::set-output name=VERSION::$(basename ${GITHUB_REF}-$(date +"%Y-%m-%d_%H-%M-%S"))
+          echo ::set-output name=VERSION::$(date +"%Y-%m-%d-%H-%M-%S")-$(basename ${GITHUB_REF})
       - name: Setup gcloud
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
