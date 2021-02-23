@@ -30,7 +30,7 @@ jobs:
       - name: Resolve Artifact Version
         id: resolve_artifact_version
         run: |
-          echo ::set-output name=VERSION::$(date +"%Y-%m-%d-%H-%M-%S")-$(basename ${GITHUB_REF})
+          echo ::set-output name=VERSION::$(date +"%Y.%m.%d.%H.%M.%S").$(basename ${GITHUB_REF})
       - name: Setup gcloud
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
