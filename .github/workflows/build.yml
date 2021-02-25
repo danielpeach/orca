@@ -38,8 +38,8 @@ jobs:
           service_account_key: ${{ secrets.GAR_SERVICE_ACCOUNT_KEY }}
           export_default_credentials: true
       - name: Publish artifacts
-        env: 
+        env:
           VERSION: ${{ steps.resolve_artifact_version.outputs.VERSION }}
         run: |
-          ./gradlew --info -Pversion="${VERSION}" -PartifactRegistryPublishEnabled=true -PartifactRegistryPublishAptEnabled=false publish
+          ./gradlew --info -I init.gradle -Pversion="${VERSION}" -PcommitSha="${GITHUB_SHA}" -PartifactRegistryPublishEnabled=true -PartifactRegistryPublishAptEnabled=false publish
 

@@ -1,0 +1,9 @@
+allprojects { project ->
+  if (project.hasProperty("commitSha")) {
+    project.tasks.withType(Jar) {
+      manifest {
+        attributes("Build-Revision": project.property("commitSha"))
+      }
+    }
+  }
+}
